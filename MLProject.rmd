@@ -1,0 +1,155 @@
+# Practical Machine Learning Peer Assessment
+ 
+## Summary
+
+This analysis was done to predict the manner in which the subjects performed weight lifting exercises. The data is collected from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. The outcome variable has five classes and the total number of predictors are 159.
+
+## Getting and preparing the data
+
+We load the training and testing data sets. Here it was necessary to pay attention to the fact that missing values could be represented in several ways, either by an NA, a totally empty value or #DIV/0! indicating a divide by zero error. 
+
+ Examining the dataset, there are id columns x, some timestamp etc which are not useful for model fitting. We removed those as well.
+
+ There are 159 variables. But many of them are missing values for most of the records. I removed them as well.
+
+
+```{r ReadingData}
+## downloading data from URL
+Train_URL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+Test_URL <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(url=Train_URL, destfile="pml-training.csv",method = "curl")
+download.file(url=Test_URL, destfile="pml-testing.csv")
+##reading data
+Train <- read.csv("pml-training.csv",row.names=1,na.strings = c("","NA", "#DIV/0!"))
+Test <- read.csv("pml-testing.csv",row.names=1,na.strings = c("NA","", "#DIV/0!"))
+
+
+## remmving some varables which are not required
+ColsToDrp <- c ("user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "X", "new_window")
+Training <- Train[,!(names(Train) %in% ColsToDrp )]
+Testing <- Test[,!(names(Test) %in% ColsToDrp)]
+
+## removing variables which has many missing values
+NoOfCols <- dim(Training)[2]
+ColsWithMissingData <- vector(length=NoOfCols)
+for (i in 1:NoOfCols) { ColsWithMissingData[i] <- sum(is.na(Training[,i]))}
+Training <- Training[,which(ColsWithMissingData  < 5)]
+Testing <- Testing[,which(ColsWithMissingData  < 5)]
+dim(Training)
+dim(Testing)
+```
+
+
+ we subdivide the training set to create a cross validation set. We allocate 70% of the original training set to the new training set, and the other 30% to the cross validation set:
+
+```{r SplitTrainData}
+library(caret)
+inTrain <- createDataPartition(y=Training$classe, p=0.7, list=FALSE)
+Training <- Training[inTrain,]
+TrainingTest <- Training[-inTrain,]
+```
+
+## Linear Regression
+
+In the new training and validation set, there are 53 predictors and 1 response. I check the correlations between the predictors and the outcome variable in the new training set. There doesn’t seem to be any predictors strongly correlated with the outcome variable, so linear regression model may not be a good option. We will check other models for better fit.
+
+```{r CorCheck}
+
+cor <- abs(sapply(colnames(Training[, -ncol(Training)]), function(x) cor(as.numeric(Training[, x]), as.numeric(Training$classe), method = "spearman")))
+cor
+
+```
+
+## Random Forest
+
+```{r RandomForest}
+library(randomForest)
+## fitting with train data
+fitRF <- randomForest(classe ~ ., data=Training, method="class")
+
+PredictRF <- predict(fitRF, type="class")
+confusionMatrix(Training$classe,PredictRF)
+table(Training$classe, PredictRF)
+nright = table(PredictRF == Training$classe)
+nright
+ForestInError = as.vector(100 * (1-nright["TRUE"] / sum(nright)))
+ForestInError 
+
+varImpPlot(fitRF, sort = TRUE,  main = "Importance of the Predictors")
+
+## cross validating with 30% of train data
+ValidateRF <- predict(fitRF, newdata=TrainingTest, type="class")
+confusionMatrix(TrainingTest$classe,ValidateRF)
+nright = table(ValidateRF == TrainingTest$classe)
+nright
+ForestInError = as.vector(100 * (1-nright["TRUE"] / sum(nright)))
+ForestInError 
+```
+ The random forest algorithm generates a model with accuracy 0.9913. The out-of-sample error is 0.9%, which is pretty low. We don’t need to go back and include more variables with imputations. The top 4 most important variables according to the model fit are ‘roll_belt’, ‘yaw_belt’, ‘pitch_forearm’ and ‘pitch_belt’.
+
+## Regression Trees
+
+```{r Trees, fig.width=12, fig.height=10}
+
+library(tree)
+#fitting the model
+fitTree <- tree(classe ~ ., method="tree", data=Training)
+PredictTree <- predict(fitTree, type="class")
+table(Training$classe, PredictTree)
+fitTree.prune <- prune.misclass(fitTree, best=10)
+
+#plot of generated tree
+plot(fitTree.prune)
+title(main="Tree created using tree function")
+text(fitTree.prune, cex=1.2)
+
+nright = table(PredictTree == Training$classe)
+TreeInError = as.vector(100 * (1 - nright["TRUE"] / sum(nright)))
+TreeInError 
+
+
+#cross validating the model 30% data
+ValidateTree <- predict(fitTree, newdata = TrainingTest, type="class")
+table(TrainingTest$classe, ValidateTree)
+nright = table(ValidateTree == TrainingTest$classe)
+TreeInError  = as.vector(100 * (1 - nright["TRUE"] / sum(nright)))
+TreeInError 
+
+
+##pruning to improve cross validation
+error.cv <- {Inf}
+for (i in 2:19) {
+    prune.data <- prune.misclass(fitTree, best=i)
+    pred.cv <- predict(prune.data, newdata=TrainingTest, type="class")
+    nright = table(pred.cv == TrainingTest$classe)
+    error = as.vector(100 * ( 1- nright["TRUE"] / sum(nright)))
+    error.cv <- c(error.cv, error) 
+}
+#error.cv
+plot(error.cv, type = "l", xlab="Size of tree (number of nodes)", ylab="Out of sample error(%)", main = "Relationship between tree size and out of sample error")
+
+```
+ Despite the complexity of the tree, the above fifures does not indicate overfitting as the out of sample error does not increase as more nodes are added to the tree.
+
+
+## Results
+The random forest clearly performs better, approaching 99% accuracy for in-sample and out-of-sample error so we will select this model and apply it to the test data set. We use the provided function to classify 20 data points from the test set by the type of lift. 
+
+
+```{r Results}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+
+TestFit <- predict(fitRF, newdata=Testing, type="class")
+pml_write_files(TestFit)
+
+```
+
+## Conclusion
+We see Random Forest is the most rebost for this set.
