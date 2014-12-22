@@ -233,99 +233,38 @@ download.file(url=Train_URL, destfile=&quot;pml-training.csv&quot;,method = &quo
 <pre><code class="r">download.file(url=Test_URL, destfile=&quot;pml-testing.csv&quot;)
 ##reading data
 Train &lt;- read.csv(&quot;pml-training.csv&quot;,row.names=1,na.strings = c(&quot;&quot;,&quot;NA&quot;, &quot;#DIV/0!&quot;))
-</code></pre>
-
-<pre><code>## Warning in file(file, &quot;rt&quot;): cannot open file &#39;pml-training.csv&#39;: No such
-## file or directory
-</code></pre>
-
-<pre><code>## Error in file(file, &quot;rt&quot;): cannot open the connection
-</code></pre>
-
-<pre><code class="r">Test &lt;- read.csv(&quot;pml-testing.csv&quot;,row.names=1,na.strings = c(&quot;NA&quot;,&quot;&quot;, &quot;#DIV/0!&quot;))
+Test &lt;- read.csv(&quot;pml-testing.csv&quot;,row.names=1,na.strings = c(&quot;NA&quot;,&quot;&quot;, &quot;#DIV/0!&quot;))
 
 
 ## remmving some varables which are not required
 ColsToDrp &lt;- c (&quot;user_name&quot;, &quot;raw_timestamp_part_1&quot;, &quot;raw_timestamp_part_2&quot;, &quot;cvtd_timestamp&quot;, &quot;X&quot;, &quot;new_window&quot;)
 Training &lt;- Train[,!(names(Train) %in% ColsToDrp )]
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;Train&#39; not found
-</code></pre>
-
-<pre><code class="r">Testing &lt;- Test[,!(names(Test) %in% ColsToDrp)]
+Testing &lt;- Test[,!(names(Test) %in% ColsToDrp)]
 
 ## removing variables which has many missing values
 NoOfCols &lt;- dim(Training)[2]
+ColsWithMissingData &lt;- vector(length=NoOfCols)
+for (i in 1:NoOfCols) { ColsWithMissingData[i] &lt;- sum(is.na(Training[,i]))}
+Training &lt;- Training[,which(ColsWithMissingData  &lt; 5)]
+Testing &lt;- Testing[,which(ColsWithMissingData  &lt; 5)]
+dim(Training)
 </code></pre>
 
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;Training&#39; not found
-</code></pre>
-
-<pre><code class="r">ColsWithMissingData &lt;- vector(length=NoOfCols)
-</code></pre>
-
-<pre><code>## Error in vector(length = NoOfCols): object &#39;NoOfCols&#39; not found
-</code></pre>
-
-<pre><code class="r">for (i in 1:NoOfCols) { ColsWithMissingData[i] &lt;- sum(is.na(Training[,i]))}
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;NoOfCols&#39; not found
-</code></pre>
-
-<pre><code class="r">Training &lt;- Training[,which(ColsWithMissingData  &lt; 5)]
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;Training&#39; not found
-</code></pre>
-
-<pre><code class="r">Testing &lt;- Testing[,which(ColsWithMissingData  &lt; 5)]
-</code></pre>
-
-<pre><code>## Error in which(ColsWithMissingData &lt; 5): object &#39;ColsWithMissingData&#39; not found
-</code></pre>
-
-<pre><code class="r">dim(Training)
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;Training&#39; not found
+<pre><code>## [1] 19622    54
 </code></pre>
 
 <pre><code class="r">dim(Testing)
 </code></pre>
 
-<pre><code>## [1]  20 154
+<pre><code>## [1] 20 54
 </code></pre>
 
 <p>we subdivide the training set to create a cross validation set. We allocate 70% of the original training set to the new training set, and the other 30% to the cross validation set:</p>
 
 <pre><code class="r">library(caret)
-</code></pre>
-
-<pre><code>## Warning: package &#39;caret&#39; was built under R version 3.1.2
-</code></pre>
-
-<pre><code>## Loading required package: lattice
-## Loading required package: ggplot2
-</code></pre>
-
-<pre><code class="r">inTrain &lt;- createDataPartition(y=Training$classe, p=0.7, list=FALSE)
-</code></pre>
-
-<pre><code>## Error in createDataPartition(y = Training$classe, p = 0.7, list = FALSE): object &#39;Training&#39; not found
-</code></pre>
-
-<pre><code class="r">Training &lt;- Training[inTrain,]
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;Training&#39; not found
-</code></pre>
-
-<pre><code class="r">TrainingTest &lt;- Training[-inTrain,]
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;Training&#39; not found
+inTrain &lt;- createDataPartition(y=Training$classe, p=0.7, list=FALSE)
+Training &lt;- Training[inTrain,]
+TrainingTest &lt;- Training[-inTrain,]
 </code></pre>
 
 <h2>Linear Regression</h2>
@@ -333,229 +272,115 @@ NoOfCols &lt;- dim(Training)[2]
 <p>In the new training and validation set, there are 53 predictors and 1 response. I check the correlations between the predictors and the outcome variable in the new training set. There doesn’t seem to be any predictors strongly correlated with the outcome variable, so linear regression model may not be a good option. We will check other models for better fit.</p>
 
 <pre><code class="r">cor &lt;- abs(sapply(colnames(Training[, -ncol(Training)]), function(x) cor(as.numeric(Training[, x]), as.numeric(Training$classe), method = &quot;spearman&quot;)))
+cor
 </code></pre>
 
-<pre><code>## Error in is.data.frame(x): object &#39;Training&#39; not found
-</code></pre>
-
-<pre><code class="r">cor
-</code></pre>
-
-<pre><code>## function (x, y = NULL, use = &quot;everything&quot;, method = c(&quot;pearson&quot;, 
-##     &quot;kendall&quot;, &quot;spearman&quot;)) 
-## {
-##     na.method &lt;- pmatch(use, c(&quot;all.obs&quot;, &quot;complete.obs&quot;, &quot;pairwise.complete.obs&quot;, 
-##         &quot;everything&quot;, &quot;na.or.complete&quot;))
-##     if (is.na(na.method)) 
-##         stop(&quot;invalid &#39;use&#39; argument&quot;)
-##     method &lt;- match.arg(method)
-##     if (is.data.frame(y)) 
-##         y &lt;- as.matrix(y)
-##     if (is.data.frame(x)) 
-##         x &lt;- as.matrix(x)
-##     if (!is.matrix(x) &amp;&amp; is.null(y)) 
-##         stop(&quot;supply both &#39;x&#39; and &#39;y&#39; or a matrix-like &#39;x&#39;&quot;)
-##     if (!(is.numeric(x) || is.logical(x))) 
-##         stop(&quot;&#39;x&#39; must be numeric&quot;)
-##     stopifnot(is.atomic(x))
-##     if (!is.null(y)) {
-##         if (!(is.numeric(y) || is.logical(y))) 
-##             stop(&quot;&#39;y&#39; must be numeric&quot;)
-##         stopifnot(is.atomic(y))
-##     }
-##     Rank &lt;- function(u) {
-##         if (length(u) == 0L) 
-##             u
-##         else if (is.matrix(u)) {
-##             if (nrow(u) &gt; 1L) 
-##                 apply(u, 2L, rank, na.last = &quot;keep&quot;)
-##             else row(u)
-##         }
-##         else rank(u, na.last = &quot;keep&quot;)
-##     }
-##     if (method == &quot;pearson&quot;) 
-##         .Call(C_cor, x, y, na.method, FALSE)
-##     else if (na.method %in% c(2L, 5L)) {
-##         if (is.null(y)) {
-##             .Call(C_cor, Rank(na.omit(x)), NULL, na.method, method == 
-##                 &quot;kendall&quot;)
-##         }
-##         else {
-##             nas &lt;- attr(na.omit(cbind(x, y)), &quot;na.action&quot;)
-##             dropNA &lt;- function(x, nas) {
-##                 if (length(nas)) {
-##                   if (is.matrix(x)) 
-##                     x[-nas, , drop = FALSE]
-##                   else x[-nas]
-##                 }
-##                 else x
-##             }
-##             .Call(C_cor, Rank(dropNA(x, nas)), Rank(dropNA(y, 
-##                 nas)), na.method, method == &quot;kendall&quot;)
-##         }
-##     }
-##     else if (na.method != 3L) {
-##         x &lt;- Rank(x)
-##         if (!is.null(y)) 
-##             y &lt;- Rank(y)
-##         .Call(C_cor, x, y, na.method, method == &quot;kendall&quot;)
-##     }
-##     else {
-##         if (is.null(y)) {
-##             ncy &lt;- ncx &lt;- ncol(x)
-##             if (ncx == 0) 
-##                 stop(&quot;&#39;x&#39; is empty&quot;)
-##             r &lt;- matrix(0, nrow = ncx, ncol = ncy)
-##             for (i in seq_len(ncx)) {
-##                 for (j in seq_len(i)) {
-##                   x2 &lt;- x[, i]
-##                   y2 &lt;- x[, j]
-##                   ok &lt;- complete.cases(x2, y2)
-##                   x2 &lt;- rank(x2[ok])
-##                   y2 &lt;- rank(y2[ok])
-##                   r[i, j] &lt;- if (any(ok)) 
-##                     .Call(C_cor, x2, y2, 1L, method == &quot;kendall&quot;)
-##                   else NA
-##                 }
-##             }
-##             r &lt;- r + t(r) - diag(diag(r))
-##             rownames(r) &lt;- colnames(x)
-##             colnames(r) &lt;- colnames(x)
-##             r
-##         }
-##         else {
-##             if (length(x) == 0L || length(y) == 0L) 
-##                 stop(&quot;both &#39;x&#39; and &#39;y&#39; must be non-empty&quot;)
-##             matrix_result &lt;- is.matrix(x) || is.matrix(y)
-##             if (!is.matrix(x)) 
-##                 x &lt;- matrix(x, ncol = 1L)
-##             if (!is.matrix(y)) 
-##                 y &lt;- matrix(y, ncol = 1L)
-##             ncx &lt;- ncol(x)
-##             ncy &lt;- ncol(y)
-##             r &lt;- matrix(0, nrow = ncx, ncol = ncy)
-##             for (i in seq_len(ncx)) {
-##                 for (j in seq_len(ncy)) {
-##                   x2 &lt;- x[, i]
-##                   y2 &lt;- y[, j]
-##                   ok &lt;- complete.cases(x2, y2)
-##                   x2 &lt;- rank(x2[ok])
-##                   y2 &lt;- rank(y2[ok])
-##                   r[i, j] &lt;- if (any(ok)) 
-##                     .Call(C_cor, x2, y2, 1L, method == &quot;kendall&quot;)
-##                   else NA
-##                 }
-##             }
-##             rownames(r) &lt;- colnames(x)
-##             colnames(r) &lt;- colnames(y)
-##             if (matrix_result) 
-##                 r
-##             else drop(r)
-##         }
-##     }
-## }
-## &lt;bytecode: 0x00000000184249a8&gt;
-## &lt;environment: namespace:stats&gt;
+<pre><code>##           num_window            roll_belt           pitch_belt 
+##          0.002764738          0.125904512          0.038663333 
+##             yaw_belt     total_accel_belt         gyros_belt_x 
+##          0.072372054          0.090903128          0.014753518 
+##         gyros_belt_y         gyros_belt_z         accel_belt_x 
+##          0.003361276          0.002010658          0.033380410 
+##         accel_belt_y         accel_belt_z        magnet_belt_x 
+##          0.011732036          0.139320872          0.006396327 
+##        magnet_belt_y        magnet_belt_z             roll_arm 
+##          0.198201606          0.140946343          0.050857082 
+##            pitch_arm              yaw_arm      total_accel_arm 
+##          0.188754216          0.030566920          0.151788155 
+##          gyros_arm_x          gyros_arm_y          gyros_arm_z 
+##          0.017121411          0.027648970          0.016409402 
+##          accel_arm_x          accel_arm_y          accel_arm_z 
+##          0.257715570          0.086402306          0.102039252 
+##         magnet_arm_x         magnet_arm_y         magnet_arm_z 
+##          0.284088072          0.266223157          0.159184733 
+##        roll_dumbbell       pitch_dumbbell         yaw_dumbbell 
+##          0.086007331          0.100635686          0.011591513 
+## total_accel_dumbbell     gyros_dumbbell_x     gyros_dumbbell_y 
+##          0.021534911          0.014715701          0.022948943 
+##     gyros_dumbbell_z     accel_dumbbell_x     accel_dumbbell_y 
+##          0.016923105          0.129130266          0.017324107 
+##     accel_dumbbell_z    magnet_dumbbell_x    magnet_dumbbell_y 
+##          0.082494797          0.151050929          0.051959568 
+##    magnet_dumbbell_z         roll_forearm        pitch_forearm 
+##          0.197716420          0.059298018          0.323511151 
+##          yaw_forearm  total_accel_forearm      gyros_forearm_x 
+##          0.054259853          0.118443265          0.009780504 
+##      gyros_forearm_y      gyros_forearm_z      accel_forearm_x 
+##          0.001904242          0.008985527          0.213407268 
+##      accel_forearm_y      accel_forearm_z     magnet_forearm_x 
+##          0.015206169          0.011146126          0.202161817 
+##     magnet_forearm_y     magnet_forearm_z 
+##          0.114644151          0.049973411
 </code></pre>
 
 <h2>Random Forest</h2>
 
 <pre><code class="r">library(randomForest)
-</code></pre>
-
-<pre><code>## Error in library(randomForest): there is no package called &#39;randomForest&#39;
-</code></pre>
-
-<pre><code class="r">## fitting with train data
+## fitting with train data
 fitRF &lt;- randomForest(classe ~ ., data=Training, method=&quot;class&quot;)
+
+PredictRF &lt;- predict(fitRF, type=&quot;class&quot;)
+confusionMatrix(Training$classe,PredictRF)
 </code></pre>
 
-<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;randomForest&quot;
-</code></pre>
-
-<pre><code class="r">PredictRF &lt;- predict(fitRF, type=&quot;class&quot;)
-</code></pre>
-
-<pre><code>## Error in predict(fitRF, type = &quot;class&quot;): object &#39;fitRF&#39; not found
-</code></pre>
-
-<pre><code class="r">confusionMatrix(Training$classe,PredictRF)
-</code></pre>
-
-<pre><code>## Error in confusionMatrix(Training$classe, PredictRF): object &#39;Training&#39; not found
+<pre><code>## Error in loadNamespace(name): there is no package called &#39;e1071&#39;
 </code></pre>
 
 <pre><code class="r">table(Training$classe, PredictRF)
 </code></pre>
 
-<pre><code>## Error in table(Training$classe, PredictRF): object &#39;Training&#39; not found
+<pre><code>##    PredictRF
+##        A    B    C    D    E
+##   A 3906    0    0    0    0
+##   B    5 2651    2    0    0
+##   C    0    9 2387    0    0
+##   D    0    0   15 2236    1
+##   E    0    0    0    7 2518
 </code></pre>
 
 <pre><code class="r">nright = table(PredictRF == Training$classe)
+nright
 </code></pre>
 
-<pre><code>## Error in table(PredictRF == Training$classe): object &#39;PredictRF&#39; not found
-</code></pre>
-
-<pre><code class="r">nright
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;nright&#39; not found
+<pre><code>## 
+## FALSE  TRUE 
+##    39 13698
 </code></pre>
 
 <pre><code class="r">ForestInError = as.vector(100 * (1-nright[&quot;TRUE&quot;] / sum(nright)))
+ForestInError 
 </code></pre>
 
-<pre><code>## Error in as.vector(100 * (1 - nright[&quot;TRUE&quot;]/sum(nright))): object &#39;nright&#39; not found
-</code></pre>
-
-<pre><code class="r">ForestInError 
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;ForestInError&#39; not found
+<pre><code>## [1] 0.2839048
 </code></pre>
 
 <pre><code class="r">varImpPlot(fitRF, sort = TRUE,  main = &quot;Importance of the Predictors&quot;)
 </code></pre>
 
-<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;varImpPlot&quot;
-</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfgAAAH4CAMAAACR9g9NAAAAtFBMVEX9/v0AAAAAADkAAGUAOWUAOY8AZo8AZrU5AAA5ADk5AGU5OWU5OY85Zo85ZrU5j485j9plAABlADllAGVlOQBlOTllOY9lZgBlZjllZmVlZrVlj49ltbVltf2POQCPOTmPOWWPZgCPZo+PjzmPj2WPtY+P27WP29qP2/21ZgC1Zjm1tWW124+1/rW1/tq1/v2+vr7ajznaj2Xa24/a/rXa/tra/v39tWX924/9/rX9/tr9/v0pPVFlAAAAPHRSTlP//////////////////////////////////////////////////////////////////////////////wC7iOunAAAACXBIWXMAAAsSAAALEgHS3X78AAAa+klEQVR4nO2dDXvbNpaFh3EdJR5vKtdtNt6u7HQ3O2tlkjjaTCzJ/P//a4kvEqRIgsAF+KF73qdKXJGgUJ2CJI4vD/6WA5b8beoOgGmA8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8EyB8Ew5Q+GPNxdPw/bcbrwPfniTvXo0jV/u2z7peJMJ2o99vLl8rncwoBMx4Cz8tkOcQW3ED73C6/8/TjZePpM7EYMzFX6fvb7PLp52mZLnn1kmJSr+PVvnxTuvPkhxslW+VxpVO73cWzuXoqiWYlsmlJM/rIpGX96c7Ky03WZr+THFsc020eg/zYhXH6OOU+/Yq8fitJINPWuFcrbCG/SXK/XaarHlO7/8Ln5Ww/PyWe+kt4mvXe28VsfULU+E141qO1vCy73NtrIfooP6Y74p4Wsdu/yX7lPSb+lshb94KsbN5njz6rH4Ntfi/Ls5vCmGn36nEKs8y2oh1sXov3w+vJGiFzsX37w5l5ctm6f6opHYsbZzeapXH1Nuk0feaeHNx8hXo2OyRWrOVviV1lN8m0KQXbbeS7l32Ua8mxvhhU5qRzlW93rc6nOGulKXLZvCl42snZXw8vIh3ii3yYOYm7t9dS7Z5I2OyQPgVO9NJbw4gzuEF5dTJXyxk9JwJY8yTPiyUU14PWD7hV9Vx2l2THaq/eYwGiyEPz3Vl8Lv5MnaEl6fkNe1823nqb5sZO3c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" alt="plot of chunk RandomForest"/> </p>
 
 <pre><code class="r">## cross validating with 30% of train data
 ValidateRF &lt;- predict(fitRF, newdata=TrainingTest, type=&quot;class&quot;)
+confusionMatrix(TrainingTest$classe,ValidateRF)
 </code></pre>
 
-<pre><code>## Error in predict(fitRF, newdata = TrainingTest, type = &quot;class&quot;): object &#39;fitRF&#39; not found
-</code></pre>
-
-<pre><code class="r">confusionMatrix(TrainingTest$classe,ValidateRF)
-</code></pre>
-
-<pre><code>## Error in confusionMatrix(TrainingTest$classe, ValidateRF): object &#39;TrainingTest&#39; not found
+<pre><code>## Error in loadNamespace(name): there is no package called &#39;e1071&#39;
 </code></pre>
 
 <pre><code class="r">nright = table(ValidateRF == TrainingTest$classe)
+nright
 </code></pre>
 
-<pre><code>## Error in table(ValidateRF == TrainingTest$classe): object &#39;ValidateRF&#39; not found
-</code></pre>
-
-<pre><code class="r">nright
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;nright&#39; not found
+<pre><code>## 
+## TRUE 
+## 4111
 </code></pre>
 
 <pre><code class="r">ForestInError = as.vector(100 * (1-nright[&quot;TRUE&quot;] / sum(nright)))
+ForestInError 
 </code></pre>
 
-<pre><code>## Error in as.vector(100 * (1 - nright[&quot;TRUE&quot;]/sum(nright))): object &#39;nright&#39; not found
-</code></pre>
-
-<pre><code class="r">ForestInError 
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;ForestInError&#39; not found
+<pre><code>## [1] 0
 </code></pre>
 
 <p>The random forest algorithm generates a model with accuracy 0.9913. The out-of-sample error is 0.9%, which is pretty low. We don’t need to go back and include more variables with imputations. The top 4 most important variables according to the model fit are ‘roll_belt’, ‘yaw_belt’, ‘pitch_forearm’ and ‘pitch_belt’.</p>
@@ -565,100 +390,62 @@ ValidateRF &lt;- predict(fitRF, newdata=TrainingTest, type=&quot;class&quot;)
 <pre><code class="r">library(tree)
 </code></pre>
 
-<pre><code>## Error in library(tree): there is no package called &#39;tree&#39;
+<pre><code>## Warning: package &#39;tree&#39; was built under R version 3.1.2
 </code></pre>
 
 <pre><code class="r">#fitting the model
 fitTree &lt;- tree(classe ~ ., method=&quot;tree&quot;, data=Training)
+PredictTree &lt;- predict(fitTree, type=&quot;class&quot;)
+table(Training$classe, PredictTree)
 </code></pre>
 
-<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;tree&quot;
-</code></pre>
-
-<pre><code class="r">PredictTree &lt;- predict(fitTree, type=&quot;class&quot;)
-</code></pre>
-
-<pre><code>## Error in predict(fitTree, type = &quot;class&quot;): object &#39;fitTree&#39; not found
-</code></pre>
-
-<pre><code class="r">table(Training$classe, PredictTree)
-</code></pre>
-
-<pre><code>## Error in table(Training$classe, PredictTree): object &#39;Training&#39; not found
+<pre><code>##    PredictTree
+##        A    B    C    D    E
+##   A 3558   26   18  251   53
+##   B  347 1405   94  362  450
+##   C   35  104 1692  379  186
+##   D   37  218  363 1497  137
+##   E   90  280  148  342 1665
 </code></pre>
 
 <pre><code class="r">fitTree.prune &lt;- prune.misclass(fitTree, best=10)
-</code></pre>
 
-<pre><code>## Error in eval(expr, envir, enclos): could not find function &quot;prune.misclass&quot;
-</code></pre>
-
-<pre><code class="r">#plot of generated tree
+#plot of generated tree
 plot(fitTree.prune)
+title(main=&quot;Tree created using tree function&quot;)
+text(fitTree.prune, cex=1.2)
 </code></pre>
 
-<pre><code>## Error in plot(fitTree.prune): object &#39;fitTree.prune&#39; not found
-</code></pre>
-
-<pre><code class="r">title(main=&quot;Tree created using tree function&quot;)
-</code></pre>
-
-<pre><code>## Error in title(main = &quot;Tree created using tree function&quot;): plot.new has not been called yet
-</code></pre>
-
-<pre><code class="r">text(fitTree.prune, cex=1.2)
-</code></pre>
-
-<pre><code>## Error in text(fitTree.prune, cex = 1.2): object &#39;fitTree.prune&#39; not found
-</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA2AAAALQCAMAAADB8eNXAAAApVBMVEX9/v0AAAAAADkAAGUAOTkAOWUAOY8AZoEAZrU5AAA5ADk5AGU5OQA5OTk5OY85ZmU5j485j9plAABlADllAGVlOQBlZjllZmVlj49ltbVltf2POQCPOTmPOWWPj2WPtY+P29qP2/21ZgC1Zjm1jzm1tWW124+1/rW1/tq1/v3ajznaj4/a24/a29ra2/3a/rXa/tra/v39tWX924/9/rX9/tr9/v0re4uXAAAAN3RSTlP///////////////////////////////////////////////////////////////////////8AEFmdiwAAAAlwSFlzAAALEgAACxIB0t1+/AAAIABJREFUeJzt3Yt628aZgOFC2mpJO3GXtLNxSdWKmG5SIU0T8XT/l7ZzwokcQZA4A/zD+d6njSwKHIEDfAQEy+RfjgCi+cvUKwBcMwIDIiIwICICAyIiMCAiAgMiIjAgIgIDIiIwICICAyIiMCAiAgMiIjAgIgIDIiIwICICAyIiMCAiAgMiIjAgIgIDIiIwICICAyIiMCAiAgMiIjAgIgIL6LAujNklg2xWJzfsl3fP3iX3y9unwaOc2M2Lm8f+tegbHkMRWEAhAtsUgwN70yhvW+DV+2MgAgtrN1c1HNY3/6sPEKWKzeyo9R+OtkJ1aDhdZqs+3jyaRGfNHfTnf3eBHdbqbqY2dfgpzJ9vn9SN/2c+0Yve/moXtaP0rIVZ4O7PasDOIIUeVN/fHsH0nRbmm7tF8CYEFpYLTO+/zxtzOFvo44H7w7E6yrmduFlmvyzsPm8Cq251h8STwNyyzzYwd8w0f/iveSewF9fiLLD2IMXtv5rANp2vXHbymyUCC6sKbFb/8fap/oNdwOy2q5Nl9JfcHr1q31PdUp4GtrMZuSOYSmZb6Btbi5pR+tbCLdAE1hpEf0n/Xw+/m6tD4H5pDq12kSkmNWUEFlZ1ivhoT/rMeV/9B73Atj6SdZY5mmOY271b95w1P4N1j2D1KaIp4O65s6jr5+W1OA2sHsSuXB2YGVV1u6oXGXtCU0dgYQ0IzJ5mnSyjf6waGpj5GUx91f0M9hQgsPYg1ZdPAqu+Od6EwMJqBVadyTV/sJ+YU7nFyTLqlvrssX3Pzimi+lL7JLATmO8U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5iiqBm09yx3dShBYZNU2tafp/sC2alf5+btVOzC9ePsiR71Mzf2c3d6ep0cw84et2J8D3qE1e+ZxvXSKeOwGdnaK2O7Uc4p4PAvssP7aHLnOnt2qwFrPcsKf3a4vMHMh6+GjNzBzhNKLNIHpi1mty/TNMqfa27QTmL7gqE+irqmvTmBqMvTB5PQCxmGtn47s7ZXW09Xps1x1baSor5HYu59epi+L9lX3k2c3e4poZ7q6Tfaz2/UEdrnMfsegV/vpaaN+AvvVXKlQT0XN34OYp6Sbx24S1dPV+bOcubqvMijcx+rup4Hp6yJn6me31jOZCUz8sxuBNQjsdZcfKV6b5ZNrG6nLITDzF6WFfbbtQ2C99I9BZ7+18XavzXJ58XcQJZXAiisx9TxeQp+n2b2f6RssmcCmXoEweBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBhJft8LENioeBiN9ivSb6uXNA36fe2bc+jXwF+0PmrjvW86gY2Kh9E4edu98N9XFbWq3vBlUX80xnvfdAIbVWYPo3r79J19P5Vd87Yq9t3Pq+X0+7c8uZsP998K/Z5IRXUXPYK58eFDUb8xu2PeIvrsLdPd14q//rByb8KyvXuuPtpvONrb9RHYqPJ6GM3bp6/sm4uZD613P6+X3MzsW8RW7xtWL+NGMDeq2Kp3VG99h+bdmbtvmX787al55zD7HsH1W7eM+L7pBDaqDB9G816Y7Q/23c/rhVRgZt93DdbLVCOYG3Vg7TdmN1+bbXxvOGuZAcrqTTHdR/2FEd83ncBGldvDcG+fbg8W1Qf7RimLk8C29uxxYatwy1QjmBt3H4qz9yytTxB9byv2YmBu3cY4TySwUeX1MOq3T+8G1rz7eb3kWWDVMm6EFwMzb0xrtI5gOk/d3YuniMY475tOYKPK62HUb59+fop4PAusOUVcNctUI7wYWLlo3rDv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Ez8ehiIwicOJHw9DEZjE4cSPh6EITOJw4sfDUAQmcTjx42EoApM4nPjxMBSBSRxO/HgYisAkDid+PAxFYBKHEz8ehiIwicOJHw9DEZjE4cSPh6EITOJw4sfDUAQmcTjx42GoXAMDRkFgQEQEJs1+WSi3T4FHXIQbD2+QZ2BlsQo2Vugg9ku9bpu751AD7uYrPeos1Hh4iywD2y+/D7f/hg7CjrcNVuxhbQ5e25vHQAPiLbIMbHv7y4dgu1voIFywwQ6xu3APFW+XZWCbhXtaDyF0EPaUM9zPTOHSxzvkGJh+Ti8DHnHCBmGDLYOd0RHYpHIMrFQ/L9ndOITQQdjxwq2fO0U8/CfQeHiTDANzh5xQVyVCBxF6PHc2bK4lYnQZBmbPmYJdVYsTWBnyMv2Cy/STyTCwjdnVgl3mCB0Ef9F8VfILrLpsHeoyR/ggcEXyCwwYEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARERGBARgQERERgQEYEBEREYEBGBARH9P6Jvjrcs8iRzAAAAAElFTkSuQmCC" alt="plot of chunk Trees"/> </p>
 
 <pre><code class="r">nright = table(PredictTree == Training$classe)
+TreeInError = as.vector(100 * (1 - nright[&quot;TRUE&quot;] / sum(nright)))
+TreeInError 
 </code></pre>
 
-<pre><code>## Error in table(PredictTree == Training$classe): object &#39;PredictTree&#39; not found
-</code></pre>
-
-<pre><code class="r">TreeInError = as.vector(100 * (1 - nright[&quot;TRUE&quot;] / sum(nright)))
-</code></pre>
-
-<pre><code>## Error in as.vector(100 * (1 - nright[&quot;TRUE&quot;]/sum(nright))): object &#39;nright&#39; not found
-</code></pre>
-
-<pre><code class="r">TreeInError 
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;TreeInError&#39; not found
+<pre><code>## [1] 28.53607
 </code></pre>
 
 <pre><code class="r">#cross validating the model 30% data
 ValidateTree &lt;- predict(fitTree, newdata = TrainingTest, type=&quot;class&quot;)
+table(TrainingTest$classe, ValidateTree)
 </code></pre>
 
-<pre><code>## Error in predict(fitTree, newdata = TrainingTest, type = &quot;class&quot;): object &#39;fitTree&#39; not found
-</code></pre>
-
-<pre><code class="r">table(TrainingTest$classe, ValidateTree)
-</code></pre>
-
-<pre><code>## Error in table(TrainingTest$classe, ValidateTree): object &#39;TrainingTest&#39; not found
+<pre><code>##    ValidateTree
+##        A    B    C    D    E
+##   A 1028    8    7   84   19
+##   B  118  429   29  123  126
+##   C   14   31  502  107   62
+##   D    9   63  111  462   39
+##   E   18   93   42  102  485
 </code></pre>
 
 <pre><code class="r">nright = table(ValidateTree == TrainingTest$classe)
+TreeInError  = as.vector(100 * (1 - nright[&quot;TRUE&quot;] / sum(nright)))
+TreeInError 
 </code></pre>
 
-<pre><code>## Error in table(ValidateTree == TrainingTest$classe): object &#39;ValidateTree&#39; not found
-</code></pre>
-
-<pre><code class="r">TreeInError  = as.vector(100 * (1 - nright[&quot;TRUE&quot;] / sum(nright)))
-</code></pre>
-
-<pre><code>## Error in as.vector(100 * (1 - nright[&quot;TRUE&quot;]/sum(nright))): object &#39;nright&#39; not found
-</code></pre>
-
-<pre><code class="r">TreeInError 
-</code></pre>
-
-<pre><code>## Error in eval(expr, envir, enclos): object &#39;TreeInError&#39; not found
+<pre><code>## [1] 29.3116
 </code></pre>
 
 <pre><code class="r">##pruning to improve cross validation
@@ -670,25 +457,12 @@ for (i in 2:19) {
     error = as.vector(100 * ( 1- nright[&quot;TRUE&quot;] / sum(nright)))
     error.cv &lt;- c(error.cv, error) 
 }
-</code></pre>
-
-<pre><code>## Error: could not find function &quot;prune.misclass&quot;
-</code></pre>
-
-<pre><code class="r">#error.cv
+#error.cv
 plot(error.cv, type = &quot;l&quot;, xlab=&quot;Size of tree (number of nodes)&quot;, ylab=&quot;Out of sample error(%)&quot;, main = &quot;Relationship between tree size and out of sample error&quot;)
 </code></pre>
 
-<pre><code>## Warning in min(x): no non-missing arguments to min; returning Inf
-</code></pre>
-
-<pre><code>## Warning in max(x): no non-missing arguments to max; returning -Inf
-</code></pre>
-
-<pre><code>## Error in plot.window(...): need finite &#39;ylim&#39; values
-</code></pre>
-
-<p>Despite the complexity of the tree, the above fifures does not indicate overfitting as the out of sample error does not increase as more nodes are added to the tree.</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA2AAAALQCAMAAADB8eNXAAAAnFBMVEX9/v0AAAAAADkAAGUAOWUAOY8AZo8AZrU5AAA5ADk5AGU5OWU5OY85ZmU5ZrU5j485j9plAABlADllAGVlOQBlOY9lZjllZmVlZrVltbVltf2POQCPOTmPOWWPZgCPj2WPtY+P29qP2/21ZgC1Zjm1ZmW1tWW124+1/rW1/v3ajzna24/a/rXa/tra/v39tWX924/9/rX9/tr9/v0UGW6RAAAANHRSTlP///////////////////////////////////////////////////////////////////8AS1ciZQAAAAlwSFlzAAALEgAACxIB0t1+/AAAGYVJREFUeJzt3QFf48h5wOF6txRy3V7gNk0auGtz0F4CSbDB3/+71ZJsY2wDEtbY8848zy85drFXjGf0X8mCtf9lDiTzL6ceAJRMYJCQwCAhgUFCAoOEBAYJCQwSEhgkJDBISGCQkMAgIYFBQgKDhAQGCQkMEhIYJCQwSEhgkJDAICGBQUICg4QEBgkJDBISGCQkMEio6sCeriaNr/ebn9r83d311ie2Pd8sb9252/qWDYvNDdHz7u+PcPfeZ4+9v+DsYvLltv+Wh4yjFgJb2NjlXu0ld5OPdvF9Gb15y8ebO+TuPb0T2O4XHDQEge1TeWDNLtH992ER2vXyN9PFr7/cPt8sPpy/3HrZVvNbd8Rb/N3efFx84q8XzS+au73cOl/dtd2Zu023m/u3JruHxaba/Xz5NddffHMD3Vd/vvnyx+Ygsn3P1nIMzZeetn9RXL6+vXsYG1tttvnndWAvj6nZxtk/2y+4eVM7hO7eyy+12uR08UAWv3/oHtdy86/m8WU77eNqHsWvG4/lcvXJ3sfHqATW/fduuYc2v+kObMs9buPW826Xa36xvMvjxieawDaOhy+/WW66K+ZhscPdLe4/XXyt1ddc/2K9tflLYO02du7Zjb77AuvANh7G5u3rrb4a38Zj2glsedNLYC9fqvvY9dx9zfVWX83jxnZWpf5z87Gcb+ZbssoDmyxXe3axWOpmV1ud5yz3lu452Oxi8Tft01V7ULtctHH22N5/3mZw2f7hZWBNod1f4MvffLldb7rd3Ozi8unqT4u//DduWP9ivfl2dHfdYe98Pt+9Z3P7agzL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" alt="plot of chunk Trees"/> 
+ Despite the complexity of the tree, the above fifures does not indicate overfitting as the out of sample error does not increase as more nodes are added to the tree.</p>
 
 <h2>Results</h2>
 
@@ -704,15 +478,7 @@ plot(error.cv, type = &quot;l&quot;, xlab=&quot;Size of tree (number of nodes)&q
 
 
 TestFit &lt;- predict(fitRF, newdata=Testing, type=&quot;class&quot;)
-</code></pre>
-
-<pre><code>## Error in predict(fitRF, newdata = Testing, type = &quot;class&quot;): object &#39;fitRF&#39; not found
-</code></pre>
-
-<pre><code class="r">pml_write_files(TestFit)
-</code></pre>
-
-<pre><code>## Error in pml_write_files(TestFit): object &#39;TestFit&#39; not found
+pml_write_files(TestFit)
 </code></pre>
 
 <h2>Conclusion</h2>

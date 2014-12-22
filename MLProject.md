@@ -36,79 +36,25 @@ download.file(url=Train_URL, destfile="pml-training.csv",method = "curl")
 download.file(url=Test_URL, destfile="pml-testing.csv")
 ##reading data
 Train <- read.csv("pml-training.csv",row.names=1,na.strings = c("","NA", "#DIV/0!"))
-```
-
-```
-## Warning in file(file, "rt"): cannot open file 'pml-training.csv': No such
-## file or directory
-```
-
-```
-## Error in file(file, "rt"): cannot open the connection
-```
-
-```r
 Test <- read.csv("pml-testing.csv",row.names=1,na.strings = c("NA","", "#DIV/0!"))
 
 
 ## remmving some varables which are not required
 ColsToDrp <- c ("user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "X", "new_window")
 Training <- Train[,!(names(Train) %in% ColsToDrp )]
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'Train' not found
-```
-
-```r
 Testing <- Test[,!(names(Test) %in% ColsToDrp)]
 
 ## removing variables which has many missing values
 NoOfCols <- dim(Training)[2]
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'Training' not found
-```
-
-```r
 ColsWithMissingData <- vector(length=NoOfCols)
-```
-
-```
-## Error in vector(length = NoOfCols): object 'NoOfCols' not found
-```
-
-```r
 for (i in 1:NoOfCols) { ColsWithMissingData[i] <- sum(is.na(Training[,i]))}
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'NoOfCols' not found
-```
-
-```r
 Training <- Training[,which(ColsWithMissingData  < 5)]
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'Training' not found
-```
-
-```r
 Testing <- Testing[,which(ColsWithMissingData  < 5)]
-```
-
-```
-## Error in which(ColsWithMissingData < 5): object 'ColsWithMissingData' not found
-```
-
-```r
 dim(Training)
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'Training' not found
+## [1] 19622    54
 ```
 
 ```r
@@ -116,7 +62,7 @@ dim(Testing)
 ```
 
 ```
-## [1]  20 154
+## [1] 20 54
 ```
 
 
@@ -125,39 +71,9 @@ dim(Testing)
 
 ```r
 library(caret)
-```
-
-```
-## Warning: package 'caret' was built under R version 3.1.2
-```
-
-```
-## Loading required package: lattice
-## Loading required package: ggplot2
-```
-
-```r
 inTrain <- createDataPartition(y=Training$classe, p=0.7, list=FALSE)
-```
-
-```
-## Error in createDataPartition(y = Training$classe, p = 0.7, list = FALSE): object 'Training' not found
-```
-
-```r
 Training <- Training[inTrain,]
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'Training' not found
-```
-
-```r
 TrainingTest <- Training[-inTrain,]
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'Training' not found
 ```
 
 ## Linear Regression
@@ -167,132 +83,46 @@ In the new training and validation set, there are 53 predictors and 1 response. 
 
 ```r
 cor <- abs(sapply(colnames(Training[, -ncol(Training)]), function(x) cor(as.numeric(Training[, x]), as.numeric(Training$classe), method = "spearman")))
-```
-
-```
-## Error in is.data.frame(x): object 'Training' not found
-```
-
-```r
 cor
 ```
 
 ```
-## function (x, y = NULL, use = "everything", method = c("pearson", 
-##     "kendall", "spearman")) 
-## {
-##     na.method <- pmatch(use, c("all.obs", "complete.obs", "pairwise.complete.obs", 
-##         "everything", "na.or.complete"))
-##     if (is.na(na.method)) 
-##         stop("invalid 'use' argument")
-##     method <- match.arg(method)
-##     if (is.data.frame(y)) 
-##         y <- as.matrix(y)
-##     if (is.data.frame(x)) 
-##         x <- as.matrix(x)
-##     if (!is.matrix(x) && is.null(y)) 
-##         stop("supply both 'x' and 'y' or a matrix-like 'x'")
-##     if (!(is.numeric(x) || is.logical(x))) 
-##         stop("'x' must be numeric")
-##     stopifnot(is.atomic(x))
-##     if (!is.null(y)) {
-##         if (!(is.numeric(y) || is.logical(y))) 
-##             stop("'y' must be numeric")
-##         stopifnot(is.atomic(y))
-##     }
-##     Rank <- function(u) {
-##         if (length(u) == 0L) 
-##             u
-##         else if (is.matrix(u)) {
-##             if (nrow(u) > 1L) 
-##                 apply(u, 2L, rank, na.last = "keep")
-##             else row(u)
-##         }
-##         else rank(u, na.last = "keep")
-##     }
-##     if (method == "pearson") 
-##         .Call(C_cor, x, y, na.method, FALSE)
-##     else if (na.method %in% c(2L, 5L)) {
-##         if (is.null(y)) {
-##             .Call(C_cor, Rank(na.omit(x)), NULL, na.method, method == 
-##                 "kendall")
-##         }
-##         else {
-##             nas <- attr(na.omit(cbind(x, y)), "na.action")
-##             dropNA <- function(x, nas) {
-##                 if (length(nas)) {
-##                   if (is.matrix(x)) 
-##                     x[-nas, , drop = FALSE]
-##                   else x[-nas]
-##                 }
-##                 else x
-##             }
-##             .Call(C_cor, Rank(dropNA(x, nas)), Rank(dropNA(y, 
-##                 nas)), na.method, method == "kendall")
-##         }
-##     }
-##     else if (na.method != 3L) {
-##         x <- Rank(x)
-##         if (!is.null(y)) 
-##             y <- Rank(y)
-##         .Call(C_cor, x, y, na.method, method == "kendall")
-##     }
-##     else {
-##         if (is.null(y)) {
-##             ncy <- ncx <- ncol(x)
-##             if (ncx == 0) 
-##                 stop("'x' is empty")
-##             r <- matrix(0, nrow = ncx, ncol = ncy)
-##             for (i in seq_len(ncx)) {
-##                 for (j in seq_len(i)) {
-##                   x2 <- x[, i]
-##                   y2 <- x[, j]
-##                   ok <- complete.cases(x2, y2)
-##                   x2 <- rank(x2[ok])
-##                   y2 <- rank(y2[ok])
-##                   r[i, j] <- if (any(ok)) 
-##                     .Call(C_cor, x2, y2, 1L, method == "kendall")
-##                   else NA
-##                 }
-##             }
-##             r <- r + t(r) - diag(diag(r))
-##             rownames(r) <- colnames(x)
-##             colnames(r) <- colnames(x)
-##             r
-##         }
-##         else {
-##             if (length(x) == 0L || length(y) == 0L) 
-##                 stop("both 'x' and 'y' must be non-empty")
-##             matrix_result <- is.matrix(x) || is.matrix(y)
-##             if (!is.matrix(x)) 
-##                 x <- matrix(x, ncol = 1L)
-##             if (!is.matrix(y)) 
-##                 y <- matrix(y, ncol = 1L)
-##             ncx <- ncol(x)
-##             ncy <- ncol(y)
-##             r <- matrix(0, nrow = ncx, ncol = ncy)
-##             for (i in seq_len(ncx)) {
-##                 for (j in seq_len(ncy)) {
-##                   x2 <- x[, i]
-##                   y2 <- y[, j]
-##                   ok <- complete.cases(x2, y2)
-##                   x2 <- rank(x2[ok])
-##                   y2 <- rank(y2[ok])
-##                   r[i, j] <- if (any(ok)) 
-##                     .Call(C_cor, x2, y2, 1L, method == "kendall")
-##                   else NA
-##                 }
-##             }
-##             rownames(r) <- colnames(x)
-##             colnames(r) <- colnames(y)
-##             if (matrix_result) 
-##                 r
-##             else drop(r)
-##         }
-##     }
-## }
-## <bytecode: 0x00000000184249a8>
-## <environment: namespace:stats>
+##           num_window            roll_belt           pitch_belt 
+##          0.002764738          0.125904512          0.038663333 
+##             yaw_belt     total_accel_belt         gyros_belt_x 
+##          0.072372054          0.090903128          0.014753518 
+##         gyros_belt_y         gyros_belt_z         accel_belt_x 
+##          0.003361276          0.002010658          0.033380410 
+##         accel_belt_y         accel_belt_z        magnet_belt_x 
+##          0.011732036          0.139320872          0.006396327 
+##        magnet_belt_y        magnet_belt_z             roll_arm 
+##          0.198201606          0.140946343          0.050857082 
+##            pitch_arm              yaw_arm      total_accel_arm 
+##          0.188754216          0.030566920          0.151788155 
+##          gyros_arm_x          gyros_arm_y          gyros_arm_z 
+##          0.017121411          0.027648970          0.016409402 
+##          accel_arm_x          accel_arm_y          accel_arm_z 
+##          0.257715570          0.086402306          0.102039252 
+##         magnet_arm_x         magnet_arm_y         magnet_arm_z 
+##          0.284088072          0.266223157          0.159184733 
+##        roll_dumbbell       pitch_dumbbell         yaw_dumbbell 
+##          0.086007331          0.100635686          0.011591513 
+## total_accel_dumbbell     gyros_dumbbell_x     gyros_dumbbell_y 
+##          0.021534911          0.014715701          0.022948943 
+##     gyros_dumbbell_z     accel_dumbbell_x     accel_dumbbell_y 
+##          0.016923105          0.129130266          0.017324107 
+##     accel_dumbbell_z    magnet_dumbbell_x    magnet_dumbbell_y 
+##          0.082494797          0.151050929          0.051959568 
+##    magnet_dumbbell_z         roll_forearm        pitch_forearm 
+##          0.197716420          0.059298018          0.323511151 
+##          yaw_forearm  total_accel_forearm      gyros_forearm_x 
+##          0.054259853          0.118443265          0.009780504 
+##      gyros_forearm_y      gyros_forearm_z      accel_forearm_x 
+##          0.001904242          0.008985527          0.213407268 
+##      accel_forearm_y      accel_forearm_z     magnet_forearm_x 
+##          0.015206169          0.011146126          0.202161817 
+##     magnet_forearm_y     magnet_forearm_z 
+##          0.114644151          0.049973411
 ```
 
 ## Random Forest
@@ -300,35 +130,15 @@ cor
 
 ```r
 library(randomForest)
-```
-
-```
-## Error in library(randomForest): there is no package called 'randomForest'
-```
-
-```r
 ## fitting with train data
 fitRF <- randomForest(classe ~ ., data=Training, method="class")
-```
 
-```
-## Error in eval(expr, envir, enclos): could not find function "randomForest"
-```
-
-```r
 PredictRF <- predict(fitRF, type="class")
-```
-
-```
-## Error in predict(fitRF, type = "class"): object 'fitRF' not found
-```
-
-```r
 confusionMatrix(Training$classe,PredictRF)
 ```
 
 ```
-## Error in confusionMatrix(Training$classe, PredictRF): object 'Training' not found
+## Error in loadNamespace(name): there is no package called 'e1071'
 ```
 
 ```r
@@ -336,96 +146,69 @@ table(Training$classe, PredictRF)
 ```
 
 ```
-## Error in table(Training$classe, PredictRF): object 'Training' not found
+##    PredictRF
+##        A    B    C    D    E
+##   A 3906    0    0    0    0
+##   B    5 2651    2    0    0
+##   C    0    9 2387    0    0
+##   D    0    0   15 2236    1
+##   E    0    0    0    7 2518
 ```
 
 ```r
 nright = table(PredictRF == Training$classe)
-```
-
-```
-## Error in table(PredictRF == Training$classe): object 'PredictRF' not found
-```
-
-```r
 nright
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'nright' not found
+## 
+## FALSE  TRUE 
+##    39 13698
 ```
 
 ```r
 ForestInError = as.vector(100 * (1-nright["TRUE"] / sum(nright)))
-```
-
-```
-## Error in as.vector(100 * (1 - nright["TRUE"]/sum(nright))): object 'nright' not found
-```
-
-```r
 ForestInError 
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'ForestInError' not found
+## [1] 0.2839048
 ```
 
 ```r
 varImpPlot(fitRF, sort = TRUE,  main = "Importance of the Predictors")
 ```
 
-```
-## Error in eval(expr, envir, enclos): could not find function "varImpPlot"
-```
+![plot of chunk RandomForest](figure/RandomForest-1.png) 
 
 ```r
 ## cross validating with 30% of train data
 ValidateRF <- predict(fitRF, newdata=TrainingTest, type="class")
-```
-
-```
-## Error in predict(fitRF, newdata = TrainingTest, type = "class"): object 'fitRF' not found
-```
-
-```r
 confusionMatrix(TrainingTest$classe,ValidateRF)
 ```
 
 ```
-## Error in confusionMatrix(TrainingTest$classe, ValidateRF): object 'TrainingTest' not found
+## Error in loadNamespace(name): there is no package called 'e1071'
 ```
 
 ```r
 nright = table(ValidateRF == TrainingTest$classe)
-```
-
-```
-## Error in table(ValidateRF == TrainingTest$classe): object 'ValidateRF' not found
-```
-
-```r
 nright
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'nright' not found
+## 
+## TRUE 
+## 4111
 ```
 
 ```r
 ForestInError = as.vector(100 * (1-nright["TRUE"] / sum(nright)))
-```
-
-```
-## Error in as.vector(100 * (1 - nright["TRUE"]/sum(nright))): object 'nright' not found
-```
-
-```r
 ForestInError 
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'ForestInError' not found
+## [1] 0
 ```
  The random forest algorithm generates a model with accuracy 0.9913. The out-of-sample error is 0.9%, which is pretty low. We don’t need to go back and include more variables with imputations. The top 4 most important variables according to the model fit are ‘roll_belt’, ‘yaw_belt’, ‘pitch_forearm’ and ‘pitch_belt’.
 
@@ -437,130 +220,71 @@ library(tree)
 ```
 
 ```
-## Error in library(tree): there is no package called 'tree'
+## Warning: package 'tree' was built under R version 3.1.2
 ```
 
 ```r
 #fitting the model
 fitTree <- tree(classe ~ ., method="tree", data=Training)
-```
-
-```
-## Error in eval(expr, envir, enclos): could not find function "tree"
-```
-
-```r
 PredictTree <- predict(fitTree, type="class")
-```
-
-```
-## Error in predict(fitTree, type = "class"): object 'fitTree' not found
-```
-
-```r
 table(Training$classe, PredictTree)
 ```
 
 ```
-## Error in table(Training$classe, PredictTree): object 'Training' not found
+##    PredictTree
+##        A    B    C    D    E
+##   A 3558   26   18  251   53
+##   B  347 1405   94  362  450
+##   C   35  104 1692  379  186
+##   D   37  218  363 1497  137
+##   E   90  280  148  342 1665
 ```
 
 ```r
 fitTree.prune <- prune.misclass(fitTree, best=10)
-```
 
-```
-## Error in eval(expr, envir, enclos): could not find function "prune.misclass"
-```
-
-```r
 #plot of generated tree
 plot(fitTree.prune)
-```
-
-```
-## Error in plot(fitTree.prune): object 'fitTree.prune' not found
-```
-
-```r
 title(main="Tree created using tree function")
-```
-
-```
-## Error in title(main = "Tree created using tree function"): plot.new has not been called yet
-```
-
-```r
 text(fitTree.prune, cex=1.2)
 ```
 
-```
-## Error in text(fitTree.prune, cex = 1.2): object 'fitTree.prune' not found
-```
+![plot of chunk Trees](figure/Trees-1.png) 
 
 ```r
 nright = table(PredictTree == Training$classe)
-```
-
-```
-## Error in table(PredictTree == Training$classe): object 'PredictTree' not found
-```
-
-```r
 TreeInError = as.vector(100 * (1 - nright["TRUE"] / sum(nright)))
-```
-
-```
-## Error in as.vector(100 * (1 - nright["TRUE"]/sum(nright))): object 'nright' not found
-```
-
-```r
 TreeInError 
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'TreeInError' not found
+## [1] 28.53607
 ```
 
 ```r
 #cross validating the model 30% data
 ValidateTree <- predict(fitTree, newdata = TrainingTest, type="class")
-```
-
-```
-## Error in predict(fitTree, newdata = TrainingTest, type = "class"): object 'fitTree' not found
-```
-
-```r
 table(TrainingTest$classe, ValidateTree)
 ```
 
 ```
-## Error in table(TrainingTest$classe, ValidateTree): object 'TrainingTest' not found
+##    ValidateTree
+##        A    B    C    D    E
+##   A 1028    8    7   84   19
+##   B  118  429   29  123  126
+##   C   14   31  502  107   62
+##   D    9   63  111  462   39
+##   E   18   93   42  102  485
 ```
 
 ```r
 nright = table(ValidateTree == TrainingTest$classe)
-```
-
-```
-## Error in table(ValidateTree == TrainingTest$classe): object 'ValidateTree' not found
-```
-
-```r
 TreeInError  = as.vector(100 * (1 - nright["TRUE"] / sum(nright)))
-```
-
-```
-## Error in as.vector(100 * (1 - nright["TRUE"]/sum(nright))): object 'nright' not found
-```
-
-```r
 TreeInError 
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'TreeInError' not found
+## [1] 29.3116
 ```
 
 ```r
@@ -573,28 +297,11 @@ for (i in 2:19) {
     error = as.vector(100 * ( 1- nright["TRUE"] / sum(nright)))
     error.cv <- c(error.cv, error) 
 }
-```
-
-```
-## Error: could not find function "prune.misclass"
-```
-
-```r
 #error.cv
 plot(error.cv, type = "l", xlab="Size of tree (number of nodes)", ylab="Out of sample error(%)", main = "Relationship between tree size and out of sample error")
 ```
 
-```
-## Warning in min(x): no non-missing arguments to min; returning Inf
-```
-
-```
-## Warning in max(x): no non-missing arguments to max; returning -Inf
-```
-
-```
-## Error in plot.window(...): need finite 'ylim' values
-```
+![plot of chunk Trees](figure/Trees-2.png) 
  Despite the complexity of the tree, the above fifures does not indicate overfitting as the out of sample error does not increase as more nodes are added to the tree.
 
 
@@ -614,18 +321,7 @@ pml_write_files = function(x){
 
 
 TestFit <- predict(fitRF, newdata=Testing, type="class")
-```
-
-```
-## Error in predict(fitRF, newdata = Testing, type = "class"): object 'fitRF' not found
-```
-
-```r
 pml_write_files(TestFit)
-```
-
-```
-## Error in pml_write_files(TestFit): object 'TestFit' not found
 ```
 
 ## Conclusion
